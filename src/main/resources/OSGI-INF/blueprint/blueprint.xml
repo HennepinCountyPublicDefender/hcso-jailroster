@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+	license agreements. See the NOTICE file distributed with this work for additional 
+	information regarding copyright ownership. The ASF licenses this file to 
+	You under the Apache License, Version 2.0 (the "License"); you may not use 
+	this file except in compliance with the License. You may obtain a copy of 
+	the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+	by applicable law or agreed to in writing, software distributed under the 
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+	OF ANY KIND, either express or implied. See the License for the specific 
+	language governing permissions and limitations under the License. https://hjip.co.hennepin.mn.us/silsws/services/SubjectSearchPort/wsdl/SILSSearchService-v2-1.wsdl@searchSubjectByActivity 
+	http://137.70.17.186/silsws/services/SubjectSearchPort/wsdl/SILSSearchService-v2-1.wsdl -->
+
+
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.0.0"
+           xmlns:camel-cxf="http://camel.apache.org/schema/blueprint/cxf"
+	   xmlns:cxfcore="http://cxf.apache.org/blueprint/core"
+           xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+
+
+	<!-- 
+	                     wsdlURL="https://hjip.co.hennepin.mn.us/silsws/services/SubjectSearchPort/wsdl/SILSSearchService-v2-1.wsdl"
+	
+	http://137.70.17.186/silsws/services/SubjectSearchPort/wsdl/SILSSearchService-v2-1.wsdl@searchSubjectByActivity&amp;dataFormat=PAYLOAD"/>
+	                     serviceClass="us.mn.hennepin.co.service.sils.searchservice._2_1.SILSSearchService"
+	
+	                     address="http://www.co.hennepin.mn.us/service/sils/SearchService/2.1/SILSSearchService@searchSubjectByActivity"
+						 address="http://www.co.hennepin.mn.us/service/sils/SearchService/2.1/SILSSearchService"
+						 address="http://137.70.17.186/silsws/services/SubjectSearchPort"
+						 
+	http://www.co.hennepin.mn.us/service/sils/SubjectSearchService/2.1
+	
+	
+	 -->
+
+
+      <camel-cxf:cxfEndpoint id="searchSubjectByActivity"
+					 address="http://www.co.hennepin.mn.us/service/sils/SubjectSearchService/2.1"
+                     wsdlURL="http://137.70.17.186/silsws/services/SubjectSearchPort/wsdl/SILSSearchService-v2-1.wsdl"
+					 serviceClass="us.mn.hennepin.co.service.sils.searchservice._2_1.SubjectSearchPort"                     
+                     xmlns:sils="http://www.co.hennepin.mn.us/service/sils/SearchService/2.1"
+                     loggingFeatureEnabled="true"
+                     endpointName="sils:SubjectSearchPort"
+                     serviceName="sils:searchSubjectByActivity"
+                     
+                     >
+<!--         <camel-cxf:properties>
+            <entry key="dataFormat" value="POJO"/>
+        </camel-cxf:properties> -->
+     </camel-cxf:cxfEndpoint>
+	
+
+
+
+
+	<bean id="bookingBean" class="com.hennepin.hcso.jailroster.BookingBean" />
+
+
+	<camelContext trace="false" id="blueprintContext"
+		xmlns="http://camel.apache.org/schema/blueprint">
+		<route id="timerToLog">
+			<from uri="timer:hcsobookingtimer?period=1800000" />
+			<setBody>
+				<method method="bookings" ref="bookingBean" bean="bookingBean"></method>
+			</setBody>
+			<log loggingLevel="INFO" message="bookings : ${body}" />
+			<split>
+				<simple>body</simple>
+				<log loggingLevel="DEBUG" message="booking : ${body}" />
+				<to uri="activemq:queue:hcso.bookings" />
+			</split>
+		</route>
+		<route>
+			<from uri="activemq:queue:hcso.bookings" />
+			<process ref="silsRequestCreator" />
+			<!-- <to uri="cxf:bean:cxfEndpoint?wsdlURL=wsdl/http://137.70.17.186/silsws/services/SubjectSearchPort/wsdl/SILSSearchService-v2-1.wsdl@searchSubjectByActivity&amp;dataFormat=PAYLOAD"/> -->
+			<log loggingLevel="INFO" message="silsRequestCreator : ${body}" />
+			
+			<to uri="searchSubjectByActivity"/>
+			<log message="${body}" />
+		</route>
+	</camelContext>
+
+	<!-- <bean id="activemq" class="org.apache.activemq.camel.component.ActiveMQComponent"> 
+		<property name="brokerURL" value="tcp://localhost:61616"/> </bean> -->
+
+
+	<bean id="activemq" class="org.apache.activemq.camel.component.ActiveMQComponent">
+		<property name="brokerURL" value="tcp://lizzie:61616" />
+	</bean>
+
+	<bean class="com.hennepin.hcso.jailroster.processors.SilsRequestCreator"
+		id="silsRequestCreator">
+	</bean>
+
+
+
+</blueprint>
