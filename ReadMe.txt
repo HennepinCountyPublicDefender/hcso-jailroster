@@ -1,5 +1,7 @@
-Camel Router Project for Blueprint (OSGi)
+This is a project that polls the Hennepin County Sherrif's Office for new bookings
 =========================================
+
+The idea then is to determine whether or not the person is a client of our office so that we can notify their attorney(s)
 
 To build this project use
 
